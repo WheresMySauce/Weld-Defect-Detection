@@ -15,10 +15,10 @@ from ultralytics import YOLO
 import torch
 torch.cuda.set_device(0) # Set to your desired GPU number
 
-yolov8_model_image = YOLO('weights/yolov8n.pt')
-yolov8_model_webcam = YOLO('weights/yolov8n.pt')
+yolov8_model = YOLO('weights/yolov8n.pt')
 
-class_list = list(yolov8_model_image.names.values())
+
+class_list = list(yolov8_model.names.values())
 
 # Initiate Flask
 app = Flask(__name__)
@@ -60,11 +60,13 @@ def home_page():
                 image.save(path_to_save)
 
                 # Detect
-                results = yolov8_model_image.predict(path_to_save, save=True)
+                results = yolov8_model.predict(path_to_save, device='0', save=True)
 
-                detect_path = os.path.join(results[0].save_dir, image.filename)
-                shutil.copyfile(detect_path, path_to_save)
-                print("Save folder:", detect_path)
+                save_img = results[0].plot()
+                cv2.imwrite(path_to_save, save_img)
+                # detect_path = os.path.join(results[0].save_dir, image.filename)
+                # shutil.copyfile(detect_path, path_to_save)
+                # print("Save folder:", path_to_save)
                 # Get the name of objects in image
                 cls_name = []
                 for c in results[0].boxes.cls:
@@ -92,16 +94,14 @@ def home_page():
 def read_from_webcam():
     while True:
         # Read the image from webcam
-        image = next(webcam.get_frame())
+        frame = next(webcam.get_frame())
         # Detection
-        detect_image = yolov8_model_webcam(image, device='0')
-
+        detect_frame = yolov8_model(frame, device='0', save=False)
         # Return cv2 image result
-        image = detect_image[0].plot()
-        image = cv2.imencode('.jpg', image)[1].tobytes()#frame
+        frame = detect_frame[0].plot()
+        frame = cv2.imencode('.jpg', frame)[1].tobytes()#frame
         # Return the image to web
-        yield b'Content-Type: image/jpeg\r\n\r\n' + image + b'\r\n--frame\r\n'
-
+        yield b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n--frame\r\n'
 @app.route('/camera_feed')
 def camera_feed():
     return Response(read_from_webcam(), mimetype="multipart/x-mixed-replace; boundary=frame")

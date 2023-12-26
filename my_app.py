@@ -9,10 +9,16 @@ import cv2
 import shutil
 import base64
 import numpy as np
-from ultralytics import YOLO
 
-yolov8_model = YOLO('weights/yolov8n.pt')
-class_list = list(yolov8_model.names.values())
+# YOLO
+from ultralytics import YOLO
+import torch
+torch.cuda.set_device(0) # Set to your desired GPU number
+
+yolov8_model_image = YOLO('weights/yolov8n.pt')
+yolov8_model_webcam = YOLO('weights/yolov8n.pt')
+
+class_list = list(yolov8_model_image.names.values())
 
 # Initiate Flask
 app = Flask(__name__)
@@ -20,18 +26,18 @@ app.config['UPLOAD_FOLDER'] = "static"
 # Camera variables
 webcam = Webcam()
 # Function to plot bbox to each frame
-def plot_bboxes(frame, result, class_list):
-    for box in result.boxes:
-        x1,y1,x2,y2 = box.xyxy[0]
-        x1,y1,x2,y2=int(x1), int(y1), int(x2), int(y2)
-        conf = round(float(box.conf),2)
-        cls=int(box.cls)
-        class_name=class_list[cls]
-        label=f'{class_name}{conf}'
-        # cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (0,255,0), 3)
-        cv2.rectangle(frame, (x1,y1), (x2,y2), color=(0,255,0), thickness=2)
-        cv2.putText(frame, label, (x1, y1-2), 0, 1, color=(0,255,0), thickness=1)
-    return frame
+# def plot_bboxes(frame, result, class_list):
+#     for box in result.boxes:
+#         x1,y1,x2,y2 = box.xyxy[0]
+#         x1,y1,x2,y2=int(x1), int(y1), int(x2), int(y2)
+#         conf = round(float(box.conf),2)
+#         cls=int(box.cls)
+#         class_name=class_list[cls]
+#         label=f'{class_name}{conf}'
+#         # cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (0,255,0), 3)
+#         cv2.rectangle(frame, (x1,y1), (x2,y2), color=(0,255,0), thickness=2)
+#         cv2.putText(frame, label, (x1, y1-2), 0, 1, color=(0,255,0), thickness=1)
+#     return frame
     # for xyxy in xyxys:
     #     cv2.rectangle(frame, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (0,255,0), 3)
 
@@ -54,7 +60,7 @@ def home_page():
                 image.save(path_to_save)
 
                 # Detect
-                results = yolov8_model.predict(path_to_save, save=True)
+                results = yolov8_model_image.predict(path_to_save, save=True)
 
                 detect_path = os.path.join(results[0].save_dir, image.filename)
                 shutil.copyfile(detect_path, path_to_save)
@@ -88,15 +94,16 @@ def read_from_webcam():
         # Read the image from webcam
         image = next(webcam.get_frame())
         # Detection
-        detect_image = yolov8_model.predict(image, device='0')
+        detect_image = yolov8_model_webcam(image, device='0')
+
         # Return cv2 image result
         image = detect_image[0].plot()
         image = cv2.imencode('.jpg', image)[1].tobytes()#frame
         # Return the image to web
         yield b'Content-Type: image/jpeg\r\n\r\n' + image + b'\r\n--frame\r\n'
 
-@app.route('/image_feed')
-def image_feed():
+@app.route('/camera_feed')
+def camera_feed():
     return Response(read_from_webcam(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
 if __name__ == '__main__':

@@ -56,10 +56,8 @@ def home_page():
                 # Detect
                 results = yolov8_model.predict(path_to_save, save=True)
 
-
                 detect_path = os.path.join(results[0].save_dir, image.filename)
                 shutil.copyfile(detect_path, path_to_save)
-
                 print("Save folder:", detect_path)
                 # Get the name of objects in image
                 cls_name = []
@@ -74,7 +72,7 @@ def home_page():
                     return render_template('index.html', msg='No defect detected')
             else:
                 # If not any files
-                return render_template('index.html', msg='Hãy chọn file để tải lên')
+                return render_template('index.html', msg='Choose your file')
 
          except Exception as ex:
             # If error

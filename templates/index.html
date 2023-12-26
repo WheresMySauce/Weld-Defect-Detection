@@ -260,7 +260,7 @@
                 <div class='result_title'><b>Result</b></div>
                 <div class='result_id'>{{ msg }}</div>
                 {% if ndet > 0 %}
-                <div class='result_id'>Nhận diện được <span class='result_id_number'>{{ ndet }} obj</span></div>
+                <div class='result_id'>There are <span class='result_id_number'>{{ ndet }} defect(s).</span></div>
                 {% endif %}
                 {% if user_image %}
                 <img style="width:600px; height: 400px; border-radius:1rem" src="{{ url_for('static', filename=user_image) }}?{{ rand }}">
@@ -304,7 +304,8 @@
 
     $('#fileinput').change(function () {
         $('#upload-form').submit();
-        $('#upload_hint').text('Sending file ' + $('#fileinput')[0].files[0].name + 'to server...');
+        $('#upload_hint').text('Sending file to server...');
+        // $('#upload_hint').text('Sending file ' + $('#fileinput')[0].files[0].name + ' to server...');
     });
 </script>
 </html>

@@ -17,7 +17,7 @@ torch.cuda.set_device(0) # Set to your desired GPU number
 
 yolov8_model = YOLO('weights/yolov8n.pt')
 
-
+class_dict = yolov8_model.names
 class_list = list(yolov8_model.names.values())
 
 # Initiate Flask
@@ -60,7 +60,7 @@ def home_page():
                 image.save(path_to_save)
 
                 # Detect
-                results = yolov8_model.predict(path_to_save, device='0', save=True)
+                results = yolov8_model.predict(path_to_save, device='0', save=False)
 
                 save_img = results[0].plot()
                 cv2.imwrite(path_to_save, save_img)
@@ -70,12 +70,12 @@ def home_page():
                 # Get the name of objects in image
                 cls_name = []
                 for c in results[0].boxes.cls:
-                    cls_name.append(c)
+                    cls_name.append(class_dict[int(c)])
                 ndet = len(cls_name)
-
+                print(cls_name)
                 if ndet != 0:
                     return render_template("index.html", user_image = image.filename, rand = str(random()),
-                                           msg="Upload file sucessfully", ndet = ndet)
+                                           cls_name = cls_name, msg="Upload file sucessfully", ndet = ndet)
                 else:
                     return render_template('index.html', msg='No defect detected')
             else:
@@ -96,9 +96,9 @@ def read_from_webcam():
         # Read the image from webcam
         frame = next(webcam.get_frame())
         # Detection
-        detect_frame = yolov8_model(frame, device='0', save=False)
+        detected_frame = yolov8_model(frame, device='0', save=False, verbose=False)
         # Return cv2 image result
-        frame = detect_frame[0].plot()
+        frame = detected_frame[0].plot()
         frame = cv2.imencode('.jpg', frame)[1].tobytes()#frame
         # Return the image to web
         yield b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n--frame\r\n'
